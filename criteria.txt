@@ -1,0 +1,143 @@
+# Research Essay Evaluation Criteria
+# Based on IU International University Research Essay Guidelines
+# Target: Master's Level (12-15 pages, ~5000-6000 words)
+
+## Document Structure Requirements
+
+The essay must follow this exact structure:
+- Title page (thesis title, type, course name, course of study, date, author, matriculation number, tutor)
+- Table of contents
+- List of figures/tables (if applicable)
+- List of abbreviations (if applicable)
+- Text body: Introduction (~20%), Main Body (~70%), Conclusion (~10%)
+- Bibliography
+- Appendices (if applicable)
+
+## Formatting Requirements
+
+- Paper size: A4
+- Margins: 2cm on all sides
+- Font: Arial 11pt (body), Arial 12pt (headings), Arial 10pt (footnotes)
+- Line spacing: 1.5
+- Text alignment: Justified with hyphenation
+- Paragraph spacing: 6pt after line breaks
+- Section numbering: Maximum three levels (1. / 1.1 / 1.1.1)
+- Page numbering: Roman numerals for front matter, Arabic for body text
+
+---
+
+## Evaluation Criteria (Weighted)
+
+### 1. Introduction (4% weight)
+The introduction must:
+- Provide rationale for the topic from current state of research
+- Clearly state the aim and research question
+- Define scope and delimitation of the topic
+- Include topic-related definitions where necessary
+- Present an overview of structure and argumentation sequence
+- Establish relevance by identifying open questions in the field
+
+### 2. Structure (12% weight)
+The essay must:
+- Follow a logical progression of main points and explanatory points
+- Be coherent and cohesive as a whole
+- Follow a linear structure with clear transitions between sections
+- Logically integrate main and explanatory points across sections
+- Use transitions that reference key arguments from previous chapters
+- Have each paragraph begin with a topic sentence
+- Connect supporting points clearly to topic sentences
+- Conclude arguments in ways that lead to the next point
+
+### 3. Theory (20% weight)
+The essay must:
+- Demonstrate thorough literature evaluation
+- Show application and understanding of key definitions
+- Present a clear theoretical approach
+- Use high-quality academic sources (peer-reviewed journals, seminal works)
+- Avoid assuming any result or position to be true without evidence
+- Support or counter positions with reliable sources and facts
+- Explain anything not considered common knowledge with theory-based arguments
+
+### 4. Methodology (20% weight)
+The essay must:
+- Provide clear information on the chosen methodology
+- Justify why the methodology is appropriate for the research question
+- Demonstrate appropriate use of methods for the topic
+- Balance theoretical and practical/reflective components
+- Explain procedures for dealing with the research question
+- Show awareness of methodological limitations
+
+### 5. Argumentation (20% weight)
+The essay must:
+- Present high-quality argumentation with clear key structure
+- Demonstrate clarity of reasoning throughout
+- Show comprehensive topic comprehension
+- Combine theory and practical application effectively
+- Include critical assessment of findings
+- Provide own interpretation supported by evidence
+- Prove and discuss all assumptions, considerations, and arguments
+- Maintain a common thread linking each key point
+
+### 6. Conclusion (4% weight)
+The conclusion must:
+- Give a final, overall impression (not repetition of content)
+- Draw arguments to a close
+- Summarize key arguments
+- Answer the research question raised in the introduction
+- Include follow-up questions or future research perspectives
+- NOT introduce new ideas or arguments
+
+### 7. Representation (4% weight)
+The essay must:
+- Present information clearly and accessibly
+- Use appropriate academic formatting
+- Include well-designed figures/tables if applicable
+- Maintain consistent formatting throughout
+
+### 8. Accuracy (4% weight)
+The essay must:
+- Be free of spelling errors
+- Use correct punctuation
+- Follow consistent formatting conventions
+
+### 9. Language (4% weight)
+The essay must:
+- Use appropriate academic linguistic expression
+- Maintain formal academic tone throughout
+- Avoid colloquialisms and informal language
+- Use precise terminology consistently
+- Write in clear, well-constructed sentences
+
+### 10. Literature/Bibliography (8% weight)
+The essay must:
+- Include properly formatted references
+- Use consistent citation style throughout
+- Cite all sources used in the text
+- Include only sources actually referenced in the essay
+- Prioritize recent and authoritative sources
+
+---
+
+## Quality Thresholds for Review Agent
+
+The Review Agent should evaluate each criterion on a scale of 0.0 to 1.0 and flag for revision if:
+- Any criterion scores below 0.6
+- Overall weighted score falls below 0.7
+- Theory, Methodology, or Argumentation (the 20% criteria) score below 0.7
+
+## Word Count Targets
+
+- Total text body: 5000-6000 words (12-15 pages)
+- Introduction: ~1000-1200 words (~20%)
+- Main Body: ~3500-4200 words (~70%)
+- Conclusion: ~500-600 words (~10%)
+
+## Critical Success Factors
+
+1. Research question must be clearly stated and consistently addressed
+2. All claims must be supported by cited evidence
+3. Argumentation must follow logical progression
+4. Theory and practice must be integrated, not separated
+5. Critical analysis must go beyond description
+6. Transitions must create cohesive narrative flow
+7. Conclusion must answer the research question definitively
