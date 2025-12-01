@@ -22,3 +22,12 @@ essay:
   min_sections: 3
   max_sections: 8
 
+# Tracking Settings
+tracking:
+  enabled: true
+  provider: "langfuse"  # Future: could be "langfuse", "langsmith", "custom", etc.
+  langfuse:
+    public_key: "${LANGFUSE_PUBLIC_KEY}"  # From env var
+    secret_key: "${LANGFUSE_SECRET_KEY}"  # From env var
+    host: "https://cloud.langfuse.com"  # Cloud URL
+

@@ -1,5 +1,8 @@
 """CLI entry point for academic essay generator."""
 
+import os
+import re
+import time
 import typer
 from pathlib import Path
 import yaml
@@ -9,8 +12,56 @@ from src.utils.ollama_client import OllamaClient
 from src.loaders.pdf_loader import load_pdfs_from_directory
 from src.graph.workflow import create_workflow
 from src.utils.checkpoint import save_checkpoint, save_intermediate_essay
+from src.utils.tracking.langfuse_tracker import LangfuseTracker
 
 app = typer.Typer(help="Academic Essay Generator - Multi-agent system for generating PhD-level essays")
+
+
+def _substitute_env_vars(value: str) -> str:
+    """Substitute environment variables in config values (e.g., ${VAR})."""
+    if not isinstance(value, str):
+        return value
+    
+    def replace_env(match):
+        var_name = match.group(1)
+        return os.getenv(var_name, match.group(0))
+    
+    return re.sub(r'\$\{([^}]+)\}', replace_env, value)
+
+
+def _initialize_tracker(config_data: dict):
+    """Initialize tracker based on configuration."""
+    tracking_config = config_data.get("tracking", {})
+    
+    if not tracking_config.get("enabled", False):
+        return None
+    
+    provider = tracking_config.get("provider", "langfuse")
+    
+    if provider == "langfuse":
+        langfuse_config = tracking_config.get("langfuse", {})
+        public_key = _substitute_env_vars(langfuse_config.get("public_key", ""))
+        secret_key = _substitute_env_vars(langfuse_config.get("secret_key", ""))
+        host = langfuse_config.get("host", "https://cloud.langfuse.com")
+        
+        try:
+            tracker = LangfuseTracker(
+                public_key=public_key if public_key and not public_key.startswith("${") else None,
+                secret_key=secret_key if secret_key and not secret_key.startswith("${") else None,
+                host=host,
+                enabled=True
+            )
+            if tracker.is_enabled():
+                typer.echo("✓ Langfuse tracking enabled\n")
+            else:
+                typer.echo("⚠️  Langfuse tracking disabled (missing credentials)\n", err=True)
+            return tracker
+        except Exception as e:
+            typer.echo(f"⚠️  Warning: Failed to initialize tracker: {str(e)}\n", err=True)
+            return None
+    else:
+        typer.echo(f"⚠️  Warning: Unknown tracking provider: {provider}\n", err=True)
+        return None
 
 
 @app.callback(invoke_without_command=True)
@@ -37,12 +88,16 @@ def main(
     with open(config_path, "r") as f:
         config_data = yaml.safe_load(f)
     
-    # Initialize Ollama client
+    # Initialize tracker
+    tracker = _initialize_tracker(config_data)
+    
+    # Initialize Ollama client with tracker
     ollama_config = config_data.get("ollama", {})
     ollama_client = OllamaClient(
         model=ollama_config.get("model", "llama3.1:8b-instruct-q4_K_M"),
         base_url=ollama_config.get("base_url", "http://localhost:11434"),
-        timeout=ollama_config.get("timeout", 300)
+        timeout=ollama_config.get("timeout", 300),
+        tracker=tracker
     )
     
     # Load criteria
@@ -80,12 +135,13 @@ def main(
         literature_chunks=literature_chunks
     )
     
-    # Create workflow
+    # Create workflow with tracker
     review_config = config_data.get("review", {})
     workflow = create_workflow(
         ollama_client=ollama_client,
         review_threshold=review_config.get("threshold", 0.7),
-        max_revision_cycles=review_config.get("max_revision_cycles", 2)
+        max_revision_cycles=review_config.get("max_revision_cycles", 2),
+        tracker=tracker
     )
     
     # Set up checkpoint directory (next to output file)
@@ -95,6 +151,18 @@ def main(
     # Run workflow
     typer.echo("🚀 Starting essay generation pipeline...\n")
     typer.echo(f"💾 Checkpoints will be saved to: {checkpoint_dir}\n")
+    
+    # Start top-level trace if tracking is enabled
+    trace_id = None
+    workflow_start_time = time.time()
+    if tracker and tracker.is_enabled():
+        trace_metadata = {
+            "topic": topic,
+            "criteria_length": len(criteria_text),
+            "literature_chunks_count": len(literature_chunks),
+            "output_path": str(output_path)
+        }
+        trace_id = tracker.start_trace(name="essay_generation_workflow", metadata=trace_metadata)
     
     # Initialize for error handling
     final_state_dict = None
@@ -158,6 +226,19 @@ def main(
             f.write(final_state.final_essay)
         
         word_count = len(final_state.final_essay.split())
+        workflow_duration = time.time() - workflow_start_time
+        
+        # End trace with final metadata
+        if tracker and tracker.is_enabled() and trace_id:
+            final_metadata = {
+                "word_count": word_count,
+                "revision_cycles": final_state.revision_count,
+                "final_review_score": final_state.review_score,
+                "total_duration_seconds": workflow_duration,
+                "success": True
+            }
+            tracker.end_trace(trace_id, final_metadata)
+        
         typer.echo(f"\n✅ Essay generated successfully!")
         typer.echo(f"   Output: {output_path}")
         typer.echo(f"   Word count: {word_count}")
@@ -166,6 +247,14 @@ def main(
         
     except KeyboardInterrupt:
         typer.echo("\n\n⚠️  Generation interrupted by user", err=True)
+        # End trace with interruption metadata
+        if tracker and tracker.is_enabled() and trace_id:
+            workflow_duration = time.time() - workflow_start_time
+            tracker.end_trace(trace_id, {
+                "success": False,
+                "interrupted": True,
+                "total_duration_seconds": workflow_duration
+            })
         # Try to save last checkpoint if available
         if last_state_dict:
             try:
@@ -178,6 +267,15 @@ def main(
         raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"\n❌ Error during generation: {str(e)}", err=True)
+        # End trace with error metadata
+        if tracker and tracker.is_enabled() and trace_id:
+            workflow_duration = time.time() - workflow_start_time
+            tracker.end_trace(trace_id, {
+                "success": False,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "total_duration_seconds": workflow_duration
+            })
         # Try to save last checkpoint if available
         if last_state_dict:
             try:
