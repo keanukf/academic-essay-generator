@@ -1,0 +1,24 @@
+# Academic Essay Generator Configuration
+
+# Ollama Settings
+ollama:
+  model: "llama3.1:8b-instruct-q4_K_M"
+  base_url: "http://localhost:11434"
+  timeout: 300  # seconds
+
+# Document Processing
+chunking:
+  chunk_size: 1000  # approximate tokens
+  chunk_overlap: 100  # approximate tokens
+
+# Review Settings
+review:
+  threshold: 0.7  # minimum score to pass review (0.0-1.0)
+  max_revision_cycles: 2  # maximum number of revision loops
+
+# Essay Settings
+essay:
+  target_length: 5000  # approximate word count
+  min_sections: 3
+  max_sections: 8
+
