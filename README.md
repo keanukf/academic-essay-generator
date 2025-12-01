@@ -53,7 +53,7 @@ A local multi-agent system for generating PhD-level academic essays using LangGr
 ### Basic Command
 
 ```bash
-python main.py generate \
+python main.py \
   --topic "The impact of transformer architectures on NLP" \
   --criteria "criteria.txt" \
   --literature ./inputs/ \
@@ -88,11 +88,11 @@ python main.py generate \
 
 3. **Run the generator:**
    ```bash
-   python main.py generate \
-     --topic "The impact of transformer architectures on NLP" \
-     --criteria criteria.txt \
-     --literature ./inputs/ \
-     --output ./outputs/essay.md
+      python main.py \
+        --topic "Smarter Shields: How AI is Transforming Firewall Policy Automation in Enterprise Networks" \
+        --criteria criteria.txt \
+        --literature ./inputs/ \
+        --output ./outputs/essay.md
    ```
 
 4. **Monitor progress:**

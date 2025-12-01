@@ -8,12 +8,13 @@ from src.state.state import EssayState
 from src.utils.ollama_client import OllamaClient
 from src.loaders.pdf_loader import load_pdfs_from_directory
 from src.graph.workflow import create_workflow
+from src.utils.checkpoint import save_checkpoint, save_intermediate_essay
 
 app = typer.Typer(help="Academic Essay Generator - Multi-agent system for generating PhD-level essays")
 
 
-@app.command()
-def generate(
+@app.callback(invoke_without_command=True)
+def main(
     topic: str = typer.Option(..., "--topic", "-t", help="Essay topic"),
     criteria: str = typer.Option(..., "--criteria", "-c", help="Path to criteria.txt file"),
     literature: str = typer.Option(..., "--literature", "-l", help="Path to directory with PDFs"),
@@ -24,7 +25,7 @@ def generate(
     Generate an academic essay using the multi-agent pipeline.
     
     Example:
-        python main.py generate --topic "The impact of transformer architectures on NLP" \\
+        python main.py --topic "The impact of transformer architectures on NLP" \\
             --criteria "criteria.txt" --literature ./inputs/ --output ./outputs/essay.md
     """
     # Load configuration
@@ -87,19 +88,70 @@ def generate(
         max_revision_cycles=review_config.get("max_revision_cycles", 2)
     )
     
+    # Set up checkpoint directory (next to output file)
+    output_path = Path(output)
+    checkpoint_dir = output_path.parent / f"{output_path.stem}_checkpoints"
+    
     # Run workflow
     typer.echo("🚀 Starting essay generation pipeline...\n")
+    typer.echo(f"💾 Checkpoints will be saved to: {checkpoint_dir}\n")
+    
+    # Initialize for error handling
+    final_state_dict = None
+    last_state_dict = None
     
     try:
-        # Invoke workflow (synchronous execution)
-        final_state = workflow.invoke(initial_state)
+        # Use streaming to capture intermediate states for checkpointing
+        last_node = None
         
-        if final_state is None:
+        # Track which nodes we've checkpointed to avoid duplicates
+        checkpointed_nodes = set()
+        
+        # Stream workflow execution to capture intermediate states
+        for event in workflow.stream(initial_state):
+            # event is a dict with node names as keys
+            for node_name, state_dict in event.items():
+                last_node = node_name
+                
+                # Convert dict to EssayState for checkpointing
+                current_state = EssayState(**state_dict)
+                
+                # Save checkpoints after key nodes
+                if node_name in ["outline", "writer", "citation", "review"]:
+                    # Only checkpoint once per revision cycle for each node
+                    checkpoint_key = f"{node_name}_rev{current_state.revision_count}"
+                    if checkpoint_key not in checkpointed_nodes:
+                        try:
+                            # Save full state checkpoint
+                            checkpoint_file = save_checkpoint(current_state, checkpoint_dir, node_name)
+                            
+                            # Save intermediate essay if sections are available
+                            if node_name in ["writer", "citation", "review"] and current_state.sections:
+                                essay_file = save_intermediate_essay(current_state, checkpoint_dir, node_name)
+                                if essay_file:
+                                    typer.echo(f"  💾 Saved intermediate essay: {essay_file.name}")
+                            
+                            checkpointed_nodes.add(checkpoint_key)
+                        except Exception as e:
+                            typer.echo(f"  ⚠️  Warning: Failed to save checkpoint: {str(e)}", err=True)
+                
+                # Store state for checkpointing on error
+                final_state_dict = state_dict
+                last_state_dict = state_dict
+        
+        # If streaming didn't work or returned nothing, fall back to invoke
+        if final_state_dict is None:
+            typer.echo("  ⚠️  Streaming completed, using invoke as fallback...")
+            final_state_dict = workflow.invoke(initial_state)
+        
+        if final_state_dict is None:
             typer.echo("Error: Workflow completed but no final state returned", err=True)
             raise typer.Exit(1)
         
-        # Save output
-        output_path = Path(output)
+        # Convert dict to EssayState instance
+        final_state = EssayState(**final_state_dict)
+        
+        # Save final output
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_path, "w", encoding="utf-8") as f:
@@ -114,9 +166,27 @@ def generate(
         
     except KeyboardInterrupt:
         typer.echo("\n\n⚠️  Generation interrupted by user", err=True)
+        # Try to save last checkpoint if available
+        if last_state_dict:
+            try:
+                last_state = EssayState(**last_state_dict)
+                save_checkpoint(last_state, checkpoint_dir, "interrupted")
+                save_intermediate_essay(last_state, checkpoint_dir, "interrupted")
+                typer.echo(f"💾 Last checkpoint saved to: {checkpoint_dir}")
+            except Exception as save_error:
+                typer.echo(f"  ⚠️  Could not save checkpoint: {str(save_error)}", err=True)
         raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"\n❌ Error during generation: {str(e)}", err=True)
+        # Try to save last checkpoint if available
+        if last_state_dict:
+            try:
+                last_state = EssayState(**last_state_dict)
+                save_checkpoint(last_state, checkpoint_dir, "error")
+                save_intermediate_essay(last_state, checkpoint_dir, "error")
+                typer.echo(f"💾 Last checkpoint saved to: {checkpoint_dir}")
+            except Exception as save_error:
+                typer.echo(f"  ⚠️  Could not save checkpoint: {str(save_error)}", err=True)
         raise typer.Exit(1)
 
 
