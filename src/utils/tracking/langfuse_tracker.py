@@ -69,11 +69,16 @@ class LangfuseTracker(BaseTracker):
             return None
         
         try:
-            self._current_trace = self._client.trace(
+            # In Langfuse, traces are created implicitly by the first span
+            # Create a root span which will serve as the trace
+            root_span = self._client.start_span(
                 name=name,
                 metadata=metadata or {}
             )
-            return self._current_trace.id
+            # Store the root span as the current trace
+            self._current_trace = root_span
+            trace_id = root_span.id if hasattr(root_span, 'id') else str(id(root_span))
+            return trace_id
         except Exception as e:
             print(f"Warning: Failed to start trace: {str(e)}")
             return None
@@ -84,9 +89,12 @@ class LangfuseTracker(BaseTracker):
             return
         
         try:
-            # Update metadata if provided
-            if metadata and self._current_trace:
-                self._current_trace.update(metadata=metadata)
+            # Update metadata if provided and end the root span (which represents the trace)
+            if self._current_trace:
+                if metadata:
+                    self._current_trace.update(metadata=metadata)
+                # End the root span
+                self._current_trace.end()
             # Flush to ensure all data is sent
             self._client.flush()
             # Clear current trace
@@ -101,24 +109,25 @@ class LangfuseTracker(BaseTracker):
             return None
         
         try:
+            # If we have a current trace, create a child span
             if self._current_trace:
-                # Create span under current trace
-                span = self._current_trace.span(
+                # Get trace_id from the root span
+                trace_id = self._current_trace.id if hasattr(self._current_trace, 'id') else None
+                span = self._client.start_span(
                     name=name,
+                    trace_context={"trace_id": trace_id} if trace_id else None,
                     metadata=metadata or {}
                 )
-                span_id = span.id if hasattr(span, 'id') else str(id(span))
-                self._active_spans[span_id] = span
-                return span_id
             else:
-                # No parent trace, create standalone span
-                span = self._client.span(
+                # No parent trace, create standalone span (which creates a new trace)
+                span = self._client.start_span(
                     name=name,
                     metadata=metadata or {}
                 )
-                span_id = span.id if hasattr(span, 'id') else str(id(span))
-                self._active_spans[span_id] = span
-                return span_id
+            
+            span_id = span.id if hasattr(span, 'id') else str(id(span))
+            self._active_spans[span_id] = span
+            return span_id
         except Exception as e:
             print(f"Warning: Failed to start span: {str(e)}")
             return None
@@ -134,7 +143,9 @@ class LangfuseTracker(BaseTracker):
                 # Update metadata if provided
                 if metadata:
                     span.update(metadata=metadata)
-                # Remove from active spans (span will be finalized automatically)
+                # End the span
+                span.end()
+                # Remove from active spans
                 del self._active_spans[span_id]
                 # Flush to ensure data is sent
                 self._client.flush()
@@ -162,31 +173,26 @@ class LangfuseTracker(BaseTracker):
             temperature = metadata.get("temperature")
             max_tokens = metadata.get("max_tokens")
             
-            generation_config = {}
-            if temperature is not None:
-                generation_config["temperature"] = temperature
-            if max_tokens is not None:
-                generation_config["max_tokens"] = max_tokens
-            
-            # Create generation under current trace or standalone
+            # Get trace_id if we have a current trace
+            trace_id = None
             if self._current_trace:
-                generation = self._current_trace.generation(
-                    name=name,
-                    model=model,
-                    input=prompt,
-                    output=response,
-                    metadata=metadata,
-                    **generation_config
-                )
-            else:
-                generation = self._client.generation(
-                    name=name,
-                    model=model,
-                    input=prompt,
-                    output=response,
-                    metadata=metadata,
-                    **generation_config
-                )
+                trace_id = self._current_trace.id if hasattr(self._current_trace, 'id') else None
+            
+            # Create generation using start_as_current_observation
+            generation = self._client.start_as_current_observation(
+                as_type="generation",
+                name=name,
+                model=model,
+                input=prompt,
+                output=response,
+                metadata=metadata,
+                trace_context={"trace_id": trace_id} if trace_id else None,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            # End the generation observation
+            generation.end()
             
             # Flush to ensure data is sent
             self._client.flush()
