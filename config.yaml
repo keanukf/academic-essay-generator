@@ -2,7 +2,7 @@
 
 # Ollama Settings
 ollama:
-  model: "llama3.1:8b-instruct-q4_K_M"
+  model: "llama3.2:3b"
   base_url: "http://localhost:11434"
   timeout: 300  # seconds
 

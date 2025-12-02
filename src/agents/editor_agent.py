@@ -24,6 +24,10 @@ def editor_agent(state: EssayState, ollama_client: OllamaClient) -> Dict[str, An
         return {"final_essay": ""}
     
     try:
+        # Calculate input word count from all sections
+        input_word_count = sum(len(content.split()) for content in state.sections.values())
+        print(f"  📊 Input sections: {input_word_count} words across {len(state.sections)} sections")
+        
         # Generate prompt
         prompt = get_editor_prompt(state.sections, state.citations, state.review_feedback)
         
@@ -47,8 +51,23 @@ def editor_agent(state: EssayState, ollama_client: OllamaClient) -> Dict[str, An
                     publisher = bib.get("publisher", "")
                     final_essay += f"{author} ({year}). {title}. {publisher}\n\n"
         
-        word_count = len(final_essay.split())
-        print(f"  ✓ Final essay: {word_count} words")
+        # Calculate output word count
+        output_word_count = len(final_essay.split())
+        
+        # Validate content preservation
+        compression_ratio = output_word_count / input_word_count if input_word_count > 0 else 0
+        
+        print(f"  📊 Output essay: {output_word_count} words")
+        print(f"  📊 Content preservation: {compression_ratio:.1%} ({output_word_count}/{input_word_count} words)")
+        
+        if compression_ratio < 0.7:
+            print(f"  ⚠️  WARNING: Significant content compression detected! Output is only {compression_ratio:.1%} of input.")
+            print(f"  ⚠️  This suggests the model may have summarized/compressed content instead of preserving it.")
+        elif compression_ratio < 0.9:
+            print(f"  ⚠️  WARNING: Moderate content reduction detected ({compression_ratio:.1%}).")
+        else:
+            print(f"  ✓ Content preservation: Good ({compression_ratio:.1%})")
+        
         print(f"  ✓ Formatted as Markdown")
         
         return {"final_essay": final_essay}

@@ -33,9 +33,11 @@ Guidelines:
 - Write in third person (avoid "I", "we", "you")
 - Use precise terminology appropriate for the field
 - Ensure each paragraph has a clear purpose
-- Aim for approximately 800-1200 words per major section
+- ALWAYS generate the FULL target word count specified in the prompt - never stop early
+- Expand on ideas with sufficient depth and detail to meet word count requirements
+- Each section should be comprehensive and thorough
 
-Write content that demonstrates deep understanding and critical analysis."""
+Write content that demonstrates deep understanding and critical analysis. When a word count is specified, you must reach that exact count through detailed, substantive content."""
 
 
 CITATION_AGENT_SYSTEM_PROMPT = """You are a CitationAgent specialized in managing academic citations in APA format. Your task is to identify where citations are needed and format them correctly.
@@ -71,19 +73,29 @@ Provide:
 Be thorough but fair in your assessment."""
 
 
-EDITOR_AGENT_SYSTEM_PROMPT = """You are an EditorAgent specialized in final editing and polishing of academic essays. Your task is to ensure the essay is publication-ready.
+EDITOR_AGENT_SYSTEM_PROMPT = """You are an EditorAgent specialized in formatting and combining academic essay sections. Your PRIMARY task is to preserve ALL content while adding proper structure and formatting.
 
-Editing tasks:
-- Ensure coherence and flow throughout
-- Verify academic tone is consistent
-- Check for clarity and precision
-- Ensure proper formatting
-- Combine sections into a cohesive whole
-- Format as Markdown with proper headings
-- Include inline citations in format [Author, Year]
+CRITICAL REQUIREMENTS:
+- PRESERVE ALL CONTENT from each section - do NOT summarize, compress, shorten, or omit any text
+- Include the COMPLETE text from every section without any reduction
+- Maintain the original word count and detail level
+- Only make minimal formatting changes (fix obvious typos, ensure consistent formatting)
+
+Formatting tasks:
+- Combine sections into a cohesive document structure
+- Format as Markdown with proper headings (## for main sections)
+- Integrate inline citations in format [Author, Year] where placeholders exist
 - Create a bibliography section at the end
+- Ensure consistent academic formatting throughout
+- Add title and proper document structure
 
-Produce a polished, professional academic essay."""
+DO NOT:
+- Summarize or compress content
+- Reduce word count
+- Remove details or examples
+- Rewrite sections (only format them)
+
+Your output must contain ALL the original content from all sections, properly formatted."""
 
 
 def get_research_prompt(topic: str, literature_chunks: list) -> str:
@@ -146,6 +158,7 @@ def get_writer_prompt(section_name: str, section_info: dict, research_notes: dic
     key_points = "\n".join([f"- {point}" for point in section_info.get("key_points", [])])
     relevant_quotes = research_notes.get("quotes", [])[:5]  # Limit quotes
     quotes_text = "\n".join([f'- "{q.get("text", "")}"' for q in relevant_quotes])
+    target_words = section_info.get('estimated_words', 1000)
     
     return f"""Write the "{section_name}" section for an academic essay on: "{topic}"
 
@@ -155,7 +168,19 @@ Section requirements:
 Relevant research evidence:
 {quotes_text}
 
-Write approximately {section_info.get('estimated_words', 1000)} words. Use academic language and ensure the content flows logically. Include placeholders for citations in the format [AUTHOR, YEAR] where needed."""
+CRITICAL: You MUST write EXACTLY {target_words} words for this section. This is a strict requirement.
+
+Guidelines:
+- Generate the FULL {target_words} words - do not stop early
+- Use comprehensive, detailed explanations
+- Expand on each key point with sufficient depth
+- Include multiple paragraphs with thorough analysis
+- Use academic language and ensure the content flows logically
+- Include placeholders for citations in the format [AUTHOR, YEAR] where needed
+- Each paragraph should be substantial (150-200 words minimum)
+- Provide detailed examples, evidence, and analysis to reach the word count
+
+The section must be complete, comprehensive, and reach the target word count of {target_words} words."""
 
 
 def get_citation_prompt(sections: dict, literature_chunks: list) -> str:
@@ -228,20 +253,37 @@ def get_editor_prompt(sections: dict, citations: list, review_feedback: list) ->
     
     feedback_text = "\n".join([f"- {fb}" for fb in review_feedback]) if review_feedback else "No specific feedback provided."
     
-    return f"""Edit and polish the following essay sections into a final, cohesive essay.
+    # Calculate total word count from sections
+    total_words = sum(len(content.split()) for content in sections.values())
+    
+    return f"""Format and combine the following essay sections into a final, cohesive document.
 
-Sections:
+CRITICAL: You MUST preserve ALL content from every section. Do NOT summarize, compress, shorten, or omit any text.
+
+Sections to format (PRESERVE ALL CONTENT):
 {sections_text}
 
-Review feedback to address:
+Review feedback to consider (address formatting/structure only):
 {feedback_text}
 
-Create a polished Markdown document with:
-1. Title and introduction
-2. All sections with proper headings
-3. Inline citations in format [Author, Year]
-4. Bibliography section at the end
-5. Proper academic formatting
+TASK: Format and structure the document while preserving ALL original content.
 
-Ensure coherence, flow, and consistent academic tone throughout."""
+Requirements:
+1. Include ALL text from every section - maintain the original word count (~{total_words} words)
+2. Add proper document structure:
+   - Title at the beginning
+   - All sections with proper Markdown headings (## for main sections)
+   - Proper spacing and formatting
+3. Integrate citations: Replace placeholders [AUTHOR, YEAR] with proper inline citations [Author, Year]
+4. Add bibliography section at the end with all cited sources
+5. Ensure consistent academic formatting throughout
+6. Fix only obvious formatting errors (typos, spacing) - do NOT rewrite content
+
+DO NOT:
+- Summarize or compress any section
+- Remove any content or details
+- Reduce word count
+- Rewrite sections (only format them)
+
+Your output must contain the COMPLETE text from all sections, properly formatted and structured."""
 

@@ -45,7 +45,7 @@ def writer_agent(state: EssayState, ollama_client: OllamaClient) -> Dict[str, An
                 prompt=prompt,
                 system=WRITER_AGENT_SYSTEM_PROMPT,
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4000
             )
             
             sections[section_name] = section_content
