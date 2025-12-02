@@ -17,7 +17,7 @@ class OllamaClient:
         self,
         model: str,
         base_url: str = "http://localhost:11434",
-        timeout: int = 300,
+        timeout: int = 900,
         tracker: Optional["BaseTracker"] = None
     ):
         """

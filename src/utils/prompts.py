@@ -20,8 +20,9 @@ Create a well-organized outline with:
 - Logical flow of arguments
 - Coverage of all required topics
 - Appropriate depth for each section
+- Word count distribution tailored to the target essay length
 
-The outline should be suitable for a PhD-level academic essay (approximately 5000-6000 words)."""
+The outline should be suitable for a PhD-level academic essay. The essay should present original arguments and analysis, not merely summarize research findings. Research findings should be used to support and inform arguments, not drive the structure."""
 
 
 WRITER_AGENT_SYSTEM_PROMPT = """You are a WriterAgent specialized in writing academic essays at the PhD level. Your task is to write clear, well-argued, and academically rigorous content.
@@ -122,20 +123,22 @@ Provide a JSON response with the following structure:
 }}"""
 
 
-def get_outline_prompt(topic: str, criteria: str, research_notes: dict) -> str:
-    """Generate prompt for OutlineAgent."""
-    research_summary = f"""
-Research findings:
-- Key arguments: {', '.join(research_notes.get('arguments', [])[:5])}
-- Main themes: {', '.join(research_notes.get('themes', [])[:5])}
-"""
-    
+def get_initial_outline_prompt(topic: str, criteria: str, target_length: int = 5000) -> str:
+    """Generate prompt for initial outline generation (without research findings)."""
     return f"""Create a detailed essay outline for the following topic: "{topic}"
 
 Evaluation criteria:
 {criteria}
 
-{research_summary}
+IMPORTANT: Generate an outline independently based on the topic and criteria. Do NOT consider any research findings at this stage. The outline should:
+1. Be well-structured and logically organized
+2. Address the topic comprehensively
+3. Meet all evaluation criteria
+4. Be tailored to approximately {target_length} words total
+5. Distribute word counts appropriately across sections
+6. Present a clear argumentative structure
+
+The essay should present original analysis and arguments, not be a summary of research. Structure the outline to support independent critical thinking and argumentation.
 
 Provide a JSON response with the following structure:
 {{
@@ -149,7 +152,61 @@ Provide a JSON response with the following structure:
         }},
         ...
     ],
-    "total_estimated_words": 5000
+    "total_estimated_words": {target_length}
+}}"""
+
+
+def get_outline_refinement_prompt(topic: str, criteria: str, initial_outline: dict, research_notes: dict, target_length: int = 5000) -> str:
+    """Generate prompt for refining outline with research findings."""
+    research_summary = f"""
+Research findings (use to inform and support, not drive the structure):
+- Key arguments from literature: {', '.join(research_notes.get('arguments', [])[:8])}
+- Main themes: {', '.join(research_notes.get('themes', [])[:8])}
+- Important findings: {', '.join(research_notes.get('findings', [])[:8])}
+- Methodologies: {', '.join(research_notes.get('methodologies', [])[:5])}
+"""
+    
+    initial_sections = "\n".join([
+        f"- {section.get('name', '')}: {section.get('estimated_words', 0)} words"
+        for section in initial_outline.get('sections', [])
+    ])
+    
+    return f"""Refine the following essay outline by incorporating current academic research findings.
+
+Topic: "{topic}"
+
+Evaluation criteria:
+{criteria}
+
+Initial outline structure:
+{initial_sections}
+
+{research_summary}
+
+TASK: Refine the outline to incorporate relevant research findings while maintaining the original structure and argumentative flow. 
+
+IMPORTANT GUIDELINES:
+1. Keep the overall structure and section organization from the initial outline
+2. Add research-informed content points where they support the arguments
+3. Ensure the essay remains argument-driven, not research-summary-driven
+4. Use research findings to strengthen and inform arguments, not replace them
+5. Maintain the target word count of approximately {target_length} words
+6. Add specific research points to relevant sections' key_points where appropriate
+7. Do NOT restructure the outline - only enhance it with research-informed details
+
+Provide a JSON response with the following structure:
+{{
+    "title": "Essay Title",
+    "sections": [
+        {{
+            "name": "Section Name",
+            "subsections": ["Subsection 1", "Subsection 2", ...],
+            "estimated_words": 1000,
+            "key_points": ["point 1", "point 2", "research-informed point", ...]
+        }},
+        ...
+    ],
+    "total_estimated_words": {target_length}
 }}"""
 
 

@@ -128,10 +128,15 @@ def main(
     
     typer.echo(f"✓ Loaded {len(literature_chunks)} literature chunks\n")
     
+    # Get essay configuration
+    essay_config = config_data.get("essay", {})
+    target_length = essay_config.get("target_length", 5000)
+    
     # Initialize state
     initial_state = EssayState(
         topic=topic,
         criteria=criteria_text,
+        target_length=target_length,
         literature_chunks=literature_chunks
     )
     

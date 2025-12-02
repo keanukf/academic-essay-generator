@@ -9,6 +9,7 @@ class EssayState(BaseModel):
     
     topic: str = Field(default="", description="Essay topic")
     criteria: str = Field(default="", description="Evaluation criteria")
+    target_length: int = Field(default=5000, description="Target word count for the essay")
     literature_chunks: List[str] = Field(default_factory=list, description="Chunked text from literature PDFs")
     research_notes: Dict[str, Any] = Field(default_factory=dict, description="Structured research notes with arguments, quotes, themes")
     outline: Dict[str, Any] = Field(default_factory=dict, description="Structured essay outline")
