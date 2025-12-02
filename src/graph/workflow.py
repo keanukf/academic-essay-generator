@@ -41,73 +41,65 @@ def create_workflow(
         agent_name: str,
         agent_func: Callable[[EssayState, OllamaClient], Dict[str, Any]]
     ) -> Callable[[EssayState], EssayState]:
-        """Wrap an agent function with tracking."""
+        """Wrap an agent function with tracking using context managers."""
         def tracked_node(state: EssayState) -> EssayState:
-            span_id = None
             start_time = time.time()
             
-            # Start span if tracker is available
-            if tracker and tracker.is_enabled():
-                # Create input state summary
-                input_metadata = {
-                    "topic": state.topic[:100] if state.topic else "",
-                    "revision_count": state.revision_count,
-                    "review_score": state.review_score,
-                    "has_outline": bool(state.outline),
-                    "has_sections": bool(state.sections),
-                    "sections_count": len(state.sections) if state.sections else 0,
-                    "citations_count": len(state.citations) if state.citations else 0
-                }
-                span_id = tracker.start_span(name=agent_name, metadata=input_metadata)
+            # Create input state summary
+            input_metadata = {
+                "topic": state.topic[:100] if state.topic else "",
+                "revision_count": state.revision_count,
+                "review_score": state.review_score,
+                "has_outline": bool(state.outline),
+                "has_sections": bool(state.sections),
+                "sections_count": len(state.sections) if state.sections else 0,
+                "citations_count": len(state.citations) if state.citations else 0
+            }
             
-            try:
-                # Execute agent
+            # Use context manager if available (simplified approach)
+            if tracker and tracker.is_enabled() and hasattr(tracker, 'span_context'):
+                try:
+                    with tracker.span_context(name=agent_name, metadata=input_metadata) as span:
+                        # Execute agent
+                        updates = agent_func(state, ollama_client)
+                        result_state = state.model_copy(update=updates)
+                        
+                        # Update span with output metadata
+                        if span:
+                            execution_time = time.time() - start_time
+                            output_metadata = {
+                                "execution_time_seconds": execution_time,
+                                "success": True
+                            }
+                            # Add output summary based on agent
+                            if agent_name == "research":
+                                research_notes = updates.get("research_notes", {})
+                                output_metadata["arguments_count"] = len(research_notes.get("arguments", []))
+                                output_metadata["quotes_count"] = len(research_notes.get("quotes", []))
+                                output_metadata["themes_count"] = len(research_notes.get("themes", []))
+                            elif agent_name == "outline":
+                                outline = updates.get("outline", {})
+                                output_metadata["sections_count"] = len(outline.get("sections", []))
+                            elif agent_name == "writer":
+                                sections = updates.get("sections", {})
+                                output_metadata["sections_generated"] = len(sections)
+                            elif agent_name == "citation":
+                                citations = updates.get("citations", [])
+                                output_metadata["citations_added"] = len(citations)
+                            elif agent_name == "review":
+                                output_metadata["review_score"] = updates.get("review_score", 0.0)
+                                output_metadata["feedback_count"] = len(updates.get("review_feedback", []))
+                            
+                            span.update(metadata=output_metadata)
+                        
+                        return result_state
+                except Exception as e:
+                    # Error is logged by span context manager
+                    raise
+            else:
+                # Fallback: execute without tracking
                 updates = agent_func(state, ollama_client)
-                result_state = state.model_copy(update=updates)
-                
-                # End span with success metadata
-                if tracker and tracker.is_enabled() and span_id:
-                    execution_time = time.time() - start_time
-                    output_metadata = {
-                        "execution_time_seconds": execution_time,
-                        "success": True
-                    }
-                    # Add output summary based on agent
-                    if agent_name == "research":
-                        research_notes = updates.get("research_notes", {})
-                        output_metadata["arguments_count"] = len(research_notes.get("arguments", []))
-                        output_metadata["quotes_count"] = len(research_notes.get("quotes", []))
-                        output_metadata["themes_count"] = len(research_notes.get("themes", []))
-                    elif agent_name == "outline":
-                        outline = updates.get("outline", {})
-                        output_metadata["sections_count"] = len(outline.get("sections", []))
-                    elif agent_name == "writer":
-                        sections = updates.get("sections", {})
-                        output_metadata["sections_generated"] = len(sections)
-                    elif agent_name == "citation":
-                        citations = updates.get("citations", [])
-                        output_metadata["citations_added"] = len(citations)
-                    elif agent_name == "review":
-                        output_metadata["review_score"] = updates.get("review_score", 0.0)
-                        output_metadata["feedback_count"] = len(updates.get("review_feedback", []))
-                    
-                    tracker.end_span(span_id, output_metadata)
-                
-                return result_state
-            except Exception as e:
-                # End span with error metadata
-                if tracker and tracker.is_enabled() and span_id:
-                    execution_time = time.time() - start_time
-                    error_metadata = {
-                        "execution_time_seconds": execution_time,
-                        "success": False,
-                        "error": str(e),
-                        "error_type": type(e).__name__
-                    }
-                    tracker.end_span(span_id, error_metadata)
-                
-                # Re-raise the exception
-                raise
+                return state.model_copy(update=updates)
         
         return tracked_node
     
