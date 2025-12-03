@@ -14,7 +14,7 @@ class EssayState(BaseModel):
     research_notes: Dict[str, Any] = Field(default_factory=dict, description="Structured research notes with arguments, quotes, themes")
     outline: Dict[str, Any] = Field(default_factory=dict, description="Structured essay outline")
     sections: Dict[str, str] = Field(default_factory=dict, description="Generated essay sections (section_name -> content)")
-    citations: List[Dict[str, str]] = Field(default_factory=list, description="APA-formatted citations")
+    citations: List[Dict[str, Any]] = Field(default_factory=list, description="APA-formatted citations")
     review_feedback: List[str] = Field(default_factory=list, description="Review feedback and suggestions")
     final_essay: str = Field(default="", description="Final polished essay in Markdown format")
     revision_count: int = Field(default=0, description="Number of revision cycles completed")

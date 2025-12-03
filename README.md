@@ -48,6 +48,23 @@ A local multi-agent system for generating PhD-level academic essays using LangGr
    ollama list
    ```
 
+5. **Set up environment variables (optional):**
+
+   The system supports optional Langfuse tracking for observability. If you want to enable tracking, set the following environment variables:
+
+   ```bash
+   export LANGFUSE_PUBLIC_KEY="your-public-key"
+   export LANGFUSE_SECRET_KEY="your-secret-key"
+   ```
+
+   Or create a `.env` file in the project root:
+   ```
+   LANGFUSE_PUBLIC_KEY=your-public-key
+   LANGFUSE_SECRET_KEY=your-secret-key
+   ```
+
+   **Note:** Tracking is optional. If these environment variables are not set, the system will run without tracking. You can get your Langfuse credentials from [https://cloud.langfuse.com](https://cloud.langfuse.com) or disable tracking in `config.yaml` by setting `tracking.enabled: false`.
+
 ## Usage
 
 ### Basic Command
@@ -120,6 +137,15 @@ chunking:
 review:
   threshold: 0.7        # Minimum score to pass (0.0-1.0)
   max_revision_cycles: 2  # Maximum revision attempts
+
+# Tracking Settings (optional)
+tracking:
+  enabled: true         # Enable/disable Langfuse tracking
+  provider: "langfuse"
+  langfuse:
+    public_key: "${LANGFUSE_PUBLIC_KEY}"  # From environment variable
+    secret_key: "${LANGFUSE_SECRET_KEY}"  # From environment variable
+    host: "https://cloud.langfuse.com"
 ```
 
 ## Project Structure
