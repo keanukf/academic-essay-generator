@@ -2,6 +2,25 @@
 
 A local multi-agent system for generating PhD-level academic essays using LangGraph for agent orchestration and Ollama for local LLM inference. The system processes literature PDFs, generates structured essays, and includes a review/editing pipeline with automatic revision cycles.
 
+## ⚠️ Disclaimer
+
+**This project is intended solely for educational and demonstration purposes.** It demonstrates the implementation of multi-agent systems using LangGraph, Langfuse, and Ollama in a coordinated workflow.
+
+**Academic Integrity:** This tool is **NOT** intended for academic dishonesty, plagiarism, or cheating. It should not be used to submit generated content as your own work without proper attribution or in violation of your institution's academic integrity policies.
+
+**Intended Use:** At best, this tool may serve as a **writing assistant** to help with:
+- Generating initial drafts that require substantial human review and editing
+- Exploring different argument structures and outlines
+- Understanding how AI agents can be orchestrated in complex workflows
+
+**Good Scientific Practice:** We highly value and encourage good scientific practice, including:
+- Original research and critical thinking
+- Proper attribution of all sources
+- Transparent methodology
+- Ethical use of AI tools in academic work
+
+Users are responsible for ensuring their use of this tool complies with their institution's policies and academic integrity standards.
+
 ## Features
 
 - **6 Specialized Agents**: Research, Outline, Writer, Citation, Review, and Editor agents working in a coordinated pipeline
