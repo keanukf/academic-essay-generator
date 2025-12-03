@@ -125,7 +125,7 @@ python main.py \
 3. **Run the generator:**
    ```bash
       python main.py \
-        --topic "Smarter Shields: How AI is Transforming Firewall Policy Automation in Enterprise Networks" \
+        --topic "The impact of transformer architectures on NLP" \
         --criteria criteria.txt \
         --literature ./inputs/ \
         --output ./outputs/essay.md
